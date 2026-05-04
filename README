@@ -42,11 +42,7 @@ cd ../
  # CWD .../meat/
 git clone https://github.com/8e8m/meat --depth=0
 cd meat
-git clone https://github.com/raysan5/raylib --depth=0
-emmake make -c raylib/src/ PLATFORM=PLATFORM_WEB BUILD_MODE=RELEASE # Provides raylib/src/libraylib.web.a
-emmake make
-emrun meat.index
- # --
+emmake make run
 
 -- License --
 SPDX ID: GPL-3.0-only.
