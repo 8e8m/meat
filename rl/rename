@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+# Written by Claude, CC0.
+
+import re
+import sys
+import subprocess
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
+
+def to_snake(name):
+    s = re.sub(r'([a-z0-9])([A-Z])',    r'\1_\2', name)
+    s = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', s)
+    return s.lower()
+
+def to_guard(path, guard_prefix):
+    return guard_prefix + re.sub(r'\W', '_', Path(path).stem.upper())
+
+def system_include_paths():
+    try:
+        result = subprocess.run(
+            ['cpp', '-v', '/dev/null', '-o', '/dev/null'],
+            stderr=subprocess.PIPE, text=True
+        )
+        paths   = []
+        capture = False
+        for line in result.stderr.splitlines():
+            if '#include <...> search starts here:' in line:
+                capture = True;  continue
+            if 'End of search list' in line:
+                break
+            if capture:
+                paths.append(Path(line.strip()))
+        return paths
+    except FileNotFoundError:
+        return []
+
+def resolve_header(name, include_dirs, system_dirs):
+    p = Path(name)
+    if p.exists():
+        return p, False
+    for d in include_dirs:
+        p = d / name
+        if p.exists():
+            return p, False
+    for d in system_dirs:
+        p = d / name
+        if p.exists():
+            return p, True
+    return None, False
+
+def make_pattern(declarators):
+    decl   = '|'.join(re.escape(d) for d in declarators)
+    prefix = rf'(?:(?:{decl})\s+)*' if declarators else ''
+    return re.compile(
+        rf'^\s*{prefix}([\w\s\*]+?)\s+([A-Z][A-Za-z0-9]+)\s*\(([^)]*)\)\s*;'
+    )
+
+C_KEYWORDS = frozenset({
+    'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case',
+    'break', 'continue', 'goto', 'sizeof', 'typedef', 'extern',
+    'static', 'inline', 'const', 'volatile', 'register', 'auto',
+    'struct', 'union', 'enum', 'default',
+})
+
+def parse_params(params):
+    """Return arg_str — bare argument list, generating names for unnamed params."""
+    args = []
+    for i, p in enumerate(params.split(',')):
+        p = p.strip()
+        if p in ('void', ''):
+            continue
+        tok = re.split(r'[\s\*]+', p)
+        if len(tok) == 1:
+            # unnamed parameter — generate a name
+            args.append(f'_p{i}')
+        else:
+            args.append(tok[-1])
+    return ', '.join(args)
+
+USAGE = """\
+usage: {prog} -o OUTBASE [-p PREFIX] [-d DECL] [-g GUARD_PREFIX] [-I DIR] header.h ...
+
+  -o OUTBASE       write OUTBASE.h and OUTBASE.c  (required)
+  -p PREFIX        alias prefix, e.g. rl_          (default: none)
+  -d DECL          declarator macro to ignore, e.g. RLAPI (repeatable)
+  -g GUARD_PREFIX  string prepended to header guards, e.g. SNAKE_
+  --include-next   use #include_next instead of #include
+  -I DIR           extra include search path (repeatable)
+"""
+
+# ---------------------------------------------------------------------------
+# argument parsing
+# ---------------------------------------------------------------------------
+
+if len(sys.argv) < 2:
+    print(USAGE.format(prog=sys.argv[0]), file=sys.stderr)
+    sys.exit(1)
+
+include_dirs  = []
+declarators   = []
+prefix        = ''
+guard_prefix  = ''
+outbase       = None
+include_next  = False
+headers       = []
+
+args = sys.argv[1:]
+i = 0
+while i < len(args):
+    a = args[i]
+    if a == '-I' and i + 1 < len(args):
+        include_dirs.append(Path(args[i+1])); i += 2
+    elif a.startswith('-I'):
+        include_dirs.append(Path(a[2:])); i += 1
+    elif a == '-p' and i + 1 < len(args):
+        prefix = args[i+1]; i += 2
+    elif a == '-d' and i + 1 < len(args):
+        declarators.append(args[i+1]); i += 2
+    elif a == '-g' and i + 1 < len(args):
+        guard_prefix = args[i+1]; i += 2
+    elif a == '-o' and i + 1 < len(args):
+        outbase = args[i+1]; i += 2
+    elif a == '--include-next':
+        include_next = True; i += 1
+    else:
+        headers.append(a); i += 1
+
+if outbase is None:
+    print('error: -o OUTBASE is required', file=sys.stderr)
+    sys.exit(1)
+
+if not headers:
+    print('error: at least one header required', file=sys.stderr)
+    sys.exit(1)
+
+# ---------------------------------------------------------------------------
+# scan headers
+# ---------------------------------------------------------------------------
+
+pattern     = make_pattern(declarators)
+system_dirs = system_include_paths()
+
+# functions: list of (include_str, guard, ret, fname, params, alias, arg_str)
+sections = []   # one entry per header
+
+for h in headers:
+    resolved, is_system = resolve_header(h, include_dirs, system_dirs)
+    if resolved is None:
+        print(f'warning: {h}: not found', file=sys.stderr)
+        continue
+
+    include_str = f'<{h}>' if is_system else f'"{h}"'
+    guard       = to_guard(h, guard_prefix)
+    funcs       = []
+
+    with open(resolved) as f:
+        for line in f:
+            m = pattern.match(line)
+            if not m:
+                continue
+            ret    = m.group(1).strip()
+            fname  = m.group(2)
+            params = m.group(3).strip()
+            # skip if ret contains a C keyword — means we matched a
+            # return statement or similar inside a function body
+            if any(tok in C_KEYWORDS for tok in ret.split()):
+                continue
+            alias    = prefix + to_snake(fname)
+            variadic = params.strip().endswith('...')
+            arg_str  = parse_params(params)
+            funcs.append((ret, fname, params, alias, arg_str, variadic))
+
+    sections.append((include_str, guard, h, funcs))
+
+# ---------------------------------------------------------------------------
+# emit header  (.h)
+# ---------------------------------------------------------------------------
+
+h_path = Path(outbase + '.h')
+c_path = Path(outbase + '.c')
+
+h_guard = to_guard(outbase, guard_prefix) + '_H'
+
+with open(h_path, 'w') as hf:
+    hf.write(f'#ifndef {h_guard}\n')
+    hf.write(f'#define {h_guard}\n\n')
+
+    for include_str, guard, h, funcs in sections:
+        hf.write(f'/* -- {h} -- */\n')
+        directive = 'include_next' if include_next else 'include'
+        hf.write(f'#{directive} {include_str}\n\n')
+        for ret, fname, params, alias, arg_str, variadic in funcs:
+            if variadic:
+                hf.write(f'#define {alias}(...) {fname}(__VA_ARGS__)\n')
+            else:
+                hf.write(f'{ret} {alias}({params});\n')
+        hf.write('\n')
+
+    hf.write(f'#endif /* {h_guard} */\n')
+
+# ---------------------------------------------------------------------------
+# emit implementation  (.c)
+# ---------------------------------------------------------------------------
+
+with open(c_path, 'w') as cf:
+    for d in declarators:
+        cf.write(f'#define {d}\n')
+    if declarators:
+        cf.write('\n')
+    directive = 'include_next' if include_next else 'include'
+    cf.write(f'#{directive} "{h_path.name}"\n\n')
+
+    for include_str, guard, h, funcs in sections:
+        cf.write(f'/* -- {h} -- */\n\n')
+        for ret, fname, params, alias, arg_str, variadic in funcs:
+            if variadic:
+                continue  # handled as #define in the header
+            if ret == 'void':
+                cf.write(
+                    f'void {alias}({params})\n'
+                    f'{{ {fname}({arg_str}); }}\n\n'
+                )
+            else:
+                cf.write(
+                    f'{ret} {alias}({params})\n'
+                    f'{{ return {fname}({arg_str}); }}\n\n'
+                )
+
+print(f'written: {h_path}  {c_path}', file=sys.stderr)

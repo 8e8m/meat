@@ -1,0 +1,52 @@
+Meat World  :   Idle For 260520 /chad/ Gamejam
+Finished    :   TBD
+Gamejam     :  <https://game.chud.cyou/260520>
+Web         :  <https://game.chud.cyou/meat-world>
+
+ Please Enjoy.
+
+-- HOW TO PLAY --
+
+ Use your mouse!
+
+-- ----------- --
+
+ Instructions for compilation follow...
+
+-- Desktop --
+
+ Ensure libraylib.so.5.5/libglfw.so exists in your linker path.
+ If you do not or cannot install raylib via your package manager:
+
+git clone https://github.com/raysan5/raylib --depth=0
+make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=SHARED install
+
+git clone https://github.com/8e8m/meat --depth=0
+cd meat
+make run
+
+-- Web --
+
+ You must have emscripten installed:
+ <https://emscripten.org/docs/getting_started/downloads.html>
+
+ # Build emscripten
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+cd ../
+
+ # Build the game
+ # CWD .../meat/
+git clone https://github.com/8e8m/meat --depth=0
+cd meat
+git clone https://github.com/raysan5/raylib --depth=0
+emmake make -c raylib/src/ PLATFORM=PLATFORM_WEB BUILD_MODE=RELEASE # Provides raylib/src/libraylib.web.a
+emmake make
+emrun meat.index
+ # --
+
+-- License --
+SPDX ID: GPL-3.0-only.

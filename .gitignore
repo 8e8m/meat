@@ -1,0 +1,6 @@
+*
+!README
+!Makefile
+!.gitignore
+!*/
+raylib/
