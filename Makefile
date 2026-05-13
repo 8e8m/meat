@@ -88,7 +88,7 @@ LDFLAGS  := -lraylib -lglfw -lm
 TARGET   := $(NAME)
 RUN      := ./$(NAME)
 else
-CPPFLAGS := -Iraylib/src $(CPPFLAGS) -DPLATFORM_WEB
+CPPFLAGS := -Iraylib/src $(CPPFLAGS) -DPLATFORM_WEB=1
 RENAME_FLAGS += -Iraylib/src
 LDFLAGS  := \
         --preload-file resource \
@@ -104,7 +104,7 @@ LDFLAGS  := \
 TARGET   := $(NAME).html
 RUN      := emrun $(NAME).html
 raylib raylib/src/raylib.h raylib/src/raymath.h&:
-	git clone https://github.com/raysan5/raylib --depth=0
+	git clone https://github.com/raysan5/raylib --depth=1
 
 $(OBJECT): raylib/src/libraylib.web.a
 rl/rl.h: raylib/src/raylib.h
@@ -122,7 +122,7 @@ vpath %.o object
 object/%.o: %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-$(TARGET): $(HEADER) | $(OBJECT)
+$(TARGET): $(HEADER) .depend | $(OBJECT)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $| $(LDFLAGS)
 
 run: $(TARGET)
@@ -133,3 +133,8 @@ rl/rl.h rl/rl.c &:
 
 rl/rlm.h rl/rlm.c &:
 	$(RENAME) $(RENAME_FLAGS) raymath.h -o rl/rlm
+
+.depend: $(SOURCE)
+	$(CC) $(CPPFLAGS) -MM -o $@ $+
+
+-include .depend
