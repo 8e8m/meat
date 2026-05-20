@@ -45,4 +45,4 @@ cd meat
 emmake make run
 
 -- License --
-SPDX ID: GPL-3.0-only.
+SPDX ID: GPL-3.0-only, unless explicitly specified otherwise.
