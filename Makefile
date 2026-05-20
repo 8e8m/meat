@@ -65,6 +65,8 @@
 # ░░░░░░░░░░▒▒▒▒▒▒░▒░▒▒░░░▒▒▒▒▒▒▓██▓░░░░░░░░░░░░░░░░░░░░░░░██▓▒▒▒▒░░▒░░▒▒▒▒▒▒▒▒░░░░░░░░
 .DEFAULT_GOAL = $(TARGET)
 
+CC := gcc
+
 DEBUG ?= 0
 ifneq ($(DEBUG),0)
 CFLAGS := -ggdb -fsanitize=address
@@ -81,7 +83,7 @@ CFLAGS   += -pipe -std=gnu23 -O2 -flto=auto -Wall -Wextra -Wpedantic
 CPPFLAGS := -Irl -D_FORTIFY_SOURCE=3
 
 RENAME        := rl/rename
-RENAME_FLAGS  := -g SNAKE_ -d RLAPI -p rl_
+RENAME_FLAGS  := -g SNAKE_ -p rl_
 
 ifeq ($(EMSCRIPTEN),0)
 LDFLAGS  := -lraylib -lglfw -lm
@@ -122,19 +124,22 @@ vpath %.o object
 object/%.o: %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-$(TARGET): $(HEADER) .depend | $(OBJECT)
+$(TARGET): TAGS $(HEADER) .depend | $(OBJECT)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $| $(LDFLAGS)
 
 run: $(TARGET)
 	$(RUN)
 
 rl/rl.h rl/rl.c &:
-	$(RENAME) $(RENAME_FLAGS) raylib.h -o rl/rl
+	$(RENAME) $(RENAME_FLAGS) -d RLAPI raylib.h -o rl/rl
 
 rl/rlm.h rl/rlm.c &:
-	$(RENAME) $(RENAME_FLAGS) raymath.h -o rl/rlm
+	$(RENAME) $(RENAME_FLAGS) -d RMAPI raymath.h -o rl/rlm
 
 .depend: $(SOURCE)
 	$(CC) $(CPPFLAGS) -MM -o $@ $+
+
+TAGS: $(SOURCE) $(HEADER)
+	find $+ -name "*.[chCH]" -print | etags -
 
 -include .depend

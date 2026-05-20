@@ -7,7 +7,7 @@ rl_screen rl_load_render_texture_v2(const v2 area)
 { return rl_load_render_texture(area.x, area.y); }
 
 v2 rl_get_render_area(void)
-{ return (v2) {GetRenderHeight(), GetRenderWidth() }; }
+{ return (v2) {rl_get_render_height(), rl_get_render_width() }; }
 
 bool rl_init_window2(const v2 area_maybe, const char * name)
 { rl_init_window_v2(area_maybe, name);

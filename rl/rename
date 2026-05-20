@@ -55,7 +55,7 @@ def make_pattern(declarators):
     decl   = '|'.join(re.escape(d) for d in declarators)
     prefix = rf'(?:(?:{decl})\s+)*' if declarators else ''
     return re.compile(
-        rf'^\s*{prefix}([\w\s\*]+?)\s+([A-Z][A-Za-z0-9]+)\s*\(([^)]*)\)\s*;'
+        rf'^\s*{prefix}([\w\s\*]+?)\s+([A-Z][A-Za-z0-9]+)\s*\(([^)]*)\)\s*[;{{]?\s*$'
     )
 
 C_KEYWORDS = frozenset({
@@ -158,10 +158,10 @@ for h in headers:
 
     with open(resolved) as f:
         for line in f:
-            m = pattern.match(line)
+            m = pattern.match(re.sub(r'\s*//.*', '', line))
             if not m:
                 continue
-            ret    = m.group(1).strip()
+            ret    = re.sub(r'\b(?:static|inline)\b\s*', '', m.group(1)).strip()
             fname  = m.group(2)
             params = m.group(3).strip()
             # skip if ret contains a C keyword — means we matched a
@@ -206,10 +206,6 @@ with open(h_path, 'w') as hf:
 # ---------------------------------------------------------------------------
 
 with open(c_path, 'w') as cf:
-    for d in declarators:
-        cf.write(f'#define {d}\n')
-    if declarators:
-        cf.write('\n')
     directive = 'include_next' if include_next else 'include'
     cf.write(f'#{directive} "{h_path.name}"\n\n')
 

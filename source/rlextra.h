@@ -12,6 +12,7 @@ typedef Vector3 v3;
 typedef Vector4 v4;
 
 typedef RenderTexture2D rl_screen;
+typedef Font rl_font;
 
 /* Consistencies */
 void rl_init_window_v2(const v2 area_maybe, const char * name);

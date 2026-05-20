@@ -26,13 +26,28 @@ struct game
   v2 screen_area[1];            /* (Effectively Constant) screen area : drawn upscaled & centered in the physical area */
   v2 physical_area[1];          /* resizable actual window */
   photon_t random[1];           /* MT19937 moving random seed via https://github.com/BasedProject/librandom */
+  rl_font font;
   /* All Zerod On Restart:       */
   u64 number;                   /* "Incremental" Game Number. */
 };
 
-/* libc rand() considered too predictable. */
+void loop(struct game * game);
+void init(struct game * game, const char * program_name);
+void restart(struct game * game);
+
+extern struct game * global_game; /* don't use this */
+
+/* libc rand() considered no fun. */
 #define rand() random(game->random)
 
 #define dbg (game->debug)
+
+#define warn(...) fprintf(stderr, __VA_ARGS__)
+
+#define die(...)                  \
+  do {                            \
+    warn(__VA_ARGS__);            \
+    exit(1);                      \
+  } while (0)
 
 #endif  /* GAME_H_ */
