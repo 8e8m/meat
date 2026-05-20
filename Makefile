@@ -80,13 +80,13 @@ HEADER := $(wildcard source/*.h) rl/rl.h rl/rlm.h
 EMSCRIPTEN ?= 0
 
 CFLAGS   += -pipe -std=gnu23 -O2 -flto=auto -Wall -Wextra -Wpedantic
-CPPFLAGS := -Irl -D_FORTIFY_SOURCE=3
+CPPFLAGS := -Iinclude -Irl -D_FORTIFY_SOURCE=3
 
 RENAME        := rl/rename
 RENAME_FLAGS  := -g SNAKE_ -p rl_
 
 ifeq ($(EMSCRIPTEN),0)
-LDFLAGS  := -lraylib -lglfw -lm
+LDFLAGS  := -lraylib -lglfw -lchad -lm
 TARGET   := $(NAME)
 RUN      := ./$(NAME)
 else
