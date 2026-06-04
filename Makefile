@@ -79,7 +79,7 @@ HEADER := $(wildcard source/*.h) rl/rl.h rl/rlm.h
 
 EMSCRIPTEN ?= 0
 
-CFLAGS   += -pipe -std=gnu23 -O2 -flto=auto -Wall -Wextra -Wpedantic
+CFLAGS   += -pipe -std=gnu23 -O2 -fno-strict-aliasing -flto=auto -Wall -Wextra -Wpedantic -Wno-alloc-size-larger-than
 CPPFLAGS := -Iinclude -Irl -D_FORTIFY_SOURCE=3
 
 RENAME        := rl/rename
@@ -103,6 +103,7 @@ LDFLAGS  := \
         -s USE_WEBGL2=1 \
         -s USE_GLFW=3 \
         -s EMIT_EMSCRIPTEN_METADATA=0
+CPPFLAGS := -Ilibchad
 TARGET   := $(NAME).html
 RUN      := emrun $(NAME).html
 raylib raylib/src/raylib.h raylib/src/raymath.h&:
@@ -112,10 +113,13 @@ $(OBJECT): raylib/src/libraylib.web.a
 rl/rl.h: raylib/src/raylib.h
 rl/rlm.h: raylib/src/raymath.h
 
-OBJECT   += raylib/src/libraylib.web.a
+OBJECT   += raylib/src/libraylib.web.a libchad/libchad.a
 
 raylib/src/libraylib.web.a: raylib
-	emmake make -c raylib/src/ PLATFORM=PLATFORM_WEB BUILD_MODE=RELEASE
+	emmake make -C raylib/src/ PLATFORM=PLATFORM_WEB BUILD_MODE=RELEASE
+
+libchad/libchad.a: raylib
+	emmake make -C libchad
 endif
 
 vpath %.c source rl
