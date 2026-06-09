@@ -102,7 +102,10 @@ run: $(TARGET)
 TAGS: $(SOURCE) $(HEADER)
 	find $+ -name "*.[chCH]" -print | etags -
 
-meat.js:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $< raylib/src/libraylib.web.a $(LDFLAGS)
+rl/rl.h rl/rl.c &:
+	$(RENAME) $(RENAME_FLAGS) -d RLAPI raylib.h -o rl/rl
+
+rl/rlm.h rl/rlm.c &:
+	$(RENAME) $(RENAME_FLAGS) -d RMAPI raymath.h -o rl/rlm
 
 -include .depend
