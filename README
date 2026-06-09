@@ -1,5 +1,5 @@
 Meat World  :   Idle For 260520 /chad/ Gamejam
-Finished    :   TBD
+Finished    :   20260609 (On TIME)
 Gamejam     :  <https://game.chud.cyou/260520>
 Web         :  <https://game.chud.cyou/meat-world>
 
@@ -15,21 +15,32 @@ Web         :  <https://game.chud.cyou/meat-world>
 
 -- Desktop --
 
- Ensure libraylib.so.5.5/libglfw.so exists in your linker path.
- Ensure libchad.so (https://github.com/BasedProject/libchad) exists in your linker path.
- If you do not or cannot install raylib via your package manager:
-
-git clone https://github.com/raysan5/raylib --depth=1
-make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=SHARED install
-
-git clone https://github.com/BasedProject/libchad --depth=1
-sudo make -C libchad install
+:::Some assembly required:::
 
 git clone https://github.com/8e8m/meat --depth=1
 cd meat
 make run
 
+ # ... inside meat ...
+
+ # Ensure libraylib.so.5.5/libglfw.so exists in your linker path.
+ # If you do not or cannot install raylib via your package manager:
+
+git clone https://github.com/raysan5/raylib --depth=1
+sudo make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=SHARED install
+
+ # Ensure libchad.so (https://github.com/BasedProject/libchad) exists in your linker path.
+git clone https://github.com/BasedProject/libchad --depth=1
+sudo make -C libchad install
+
 -- Web --
+
+ Note: building for the web is a TRULY TREACHEROUS PURSUIT,
+ and will require that you change build files and make adaptive
+ changes. I'm leaving this here as a note to self rather than an
+ actually useful set of commands meant to provide you with a <game>.html.
+ The web version WILL contain quantum bugs that will be highly annoying
+ to debug, be aware.
 
  You must have emscripten installed:
  <https://emscripten.org/docs/getting_started/downloads.html>
@@ -42,10 +53,22 @@ cd emsdk
 source ./emsdk_env.sh
 cd ../
 
+ # Note that the libraries (libchad/libraylib) must be in wasm too.
+ # Please recompile those as web applets.
+ # raylib: emmake make PLATFORM=PLATFORM_WEB BUILD_MODE=RELEASE -B
+ # libchad: emmake make -B
+ # the libraries ought to be in for the build system:
+ #
+ #raylib/src/libraylib.web.a: raylib
+ #	emmake make -C raylib/src/ PLATFORM=PLATFORM_WEB BUILD_MODE=RELEASE
+ #
+ #libchad/libchad.a: raylib
+ #	emmake make -C libchad
+ # This should ideally, make this minimally difficult.
+ # (Read: SHOULD.)
+
  # Build the game
- # CWD .../meat/
-git clone https://github.com/8e8m/meat --depth=0
-cd meat
+ # CWD = .../meat/
 emmake make run
 
 -- License --

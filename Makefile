@@ -1,5 +1,6 @@
 #!/bin/make -f
 
+# "Wasm is quantum broken" - Yakub 2026
 # ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 # ░▒▒▒▒▓▒▒▓▒▒▒▒▒▓▓▓▒▒▓▓▒▒▒▓▒▒▓▒▒▒▒▒▓▓▓▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▓▒▒▒░
 # ░▒▒▒▒▒▒▒▒▒▒▓▓▒▒▒▓▓▓▒▒▓▓▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▓▒▒▒▒▓▓▒▒▒▒▓▒▒▒▓▓▓░
@@ -65,8 +66,6 @@
 # ░░░░░░░░░░▒▒▒▒▒▒░▒░▒▒░░░▒▒▒▒▒▒▓██▓░░░░░░░░░░░░░░░░░░░░░░░██▓▒▒▒▒░░▒░░▒▒▒▒▒▒▒▒░░░░░░░░
 .DEFAULT_GOAL = $(TARGET)
 
-CC := gcc
-
 DEBUG ?= 0
 ifneq ($(DEBUG),0)
 CFLAGS := -ggdb -fsanitize=address -DDONTSEGV
@@ -77,50 +76,13 @@ SOURCE := $(wildcard source/*.c) rl/rl.c rl/rlm.c
 OBJECT := $(addprefix object/,$(notdir $(SOURCE:.c=.o)))
 HEADER := $(wildcard source/*.h) rl/rl.h rl/rlm.h
 
-EMSCRIPTEN ?= 0
-
 CFLAGS   += -pipe -std=gnu23 -O2 -fno-strict-aliasing -flto=auto -Wall -Wextra -Wpedantic -Wno-alloc-size-larger-than
 CPPFLAGS := -Iinclude -Irl -D_FORTIFY_SOURCE=3
+LDFLAGS  := -lm -lraylib -lchad -lglfw
 
 RENAME        := rl/rename
 RENAME_FLAGS  := -g SNAKE_ -p rl_
-
-ifeq ($(EMSCRIPTEN),0)
-LDFLAGS  := -lraylib -lglfw -lchad -lm
-TARGET   := $(NAME)
-RUN      := ./$(NAME)
-else
-CPPFLAGS := -Iraylib/src $(CPPFLAGS) -DPLATFORM_WEB=1
-RENAME_FLAGS += -Iraylib/src
-LDFLAGS  := \
-        --preload-file resource \
-        --shell-file raylib/src/shell.html \
-        -s INITIAL_MEMORY=64MB \
-        -s ALLOW_MEMORY_GROWTH=1 \
-        -s STACK_SIZE=4MB \
-        -s ASYNCIFY=1 \
-        -s EXPORTED_RUNTIME_METHODS='["requestFullscreen"]' \
-        -s USE_WEBGL2=1 \
-        -s USE_GLFW=3 \
-        -s EMIT_EMSCRIPTEN_METADATA=0
-CPPFLAGS := -Ilibchad
-TARGET   := $(NAME).html
-RUN      := emrun $(NAME).html
-raylib raylib/src/raylib.h raylib/src/raymath.h&:
-	git clone https://github.com/raysan5/raylib --depth=1
-
-$(OBJECT): raylib/src/libraylib.web.a
-rl/rl.h: raylib/src/raylib.h
-rl/rlm.h: raylib/src/raymath.h
-
-OBJECT   += raylib/src/libraylib.web.a libchad/libchad.a
-
-raylib/src/libraylib.web.a: raylib
-	emmake make -C raylib/src/ PLATFORM=PLATFORM_WEB BUILD_MODE=RELEASE
-
-libchad/libchad.a: raylib
-	emmake make -C libchad
-endif
+TARGET        := meat
 
 vpath %.c source rl
 vpath %.o object
@@ -132,18 +94,15 @@ $(TARGET): TAGS $(HEADER) .depend | $(OBJECT)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $| $(LDFLAGS)
 
 run: $(TARGET)
-	$(RUN)
-
-rl/rl.h rl/rl.c &:
-	$(RENAME) $(RENAME_FLAGS) -d RLAPI raylib.h -o rl/rl
-
-rl/rlm.h rl/rlm.c &:
-	$(RENAME) $(RENAME_FLAGS) -d RMAPI raymath.h -o rl/rlm
+	./$< $(ARGS)
 
 .depend: $(SOURCE)
 	$(CC) $(CPPFLAGS) -MM -o $@ $+
 
 TAGS: $(SOURCE) $(HEADER)
 	find $+ -name "*.[chCH]" -print | etags -
+
+meat.js:
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $< raylib/src/libraylib.web.a $(LDFLAGS)
 
 -include .depend
