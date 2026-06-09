@@ -69,7 +69,7 @@ CC := gcc
 
 DEBUG ?= 0
 ifneq ($(DEBUG),0)
-CFLAGS := -ggdb -fsanitize=address
+CFLAGS := -ggdb -fsanitize=address -DDONTSEGV
 endif
 
 NAME   := $(shell basename $$PWD)

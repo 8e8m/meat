@@ -16,12 +16,16 @@ Web         :  <https://game.chud.cyou/meat-world>
 -- Desktop --
 
  Ensure libraylib.so.5.5/libglfw.so exists in your linker path.
+ Ensure libchad.so (https://github.com/BasedProject/libchad) exists in your linker path.
  If you do not or cannot install raylib via your package manager:
 
-git clone https://github.com/raysan5/raylib --depth=0
+git clone https://github.com/raysan5/raylib --depth=1
 make -C raylib/src/ PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=SHARED install
 
-git clone https://github.com/8e8m/meat --depth=0
+git clone https://github.com/BasedProject/libchad --depth=1
+sudo make -C libchad install
+
+git clone https://github.com/8e8m/meat --depth=1
 cd meat
 make run
 

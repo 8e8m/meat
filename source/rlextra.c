@@ -26,6 +26,12 @@ bool rl_window_open(void)
 v4 rl_rectangle_v4(Rectangle rect)
 { return (v4) { rect.x, rect.y, rect.width, rect.height }; }
 
+Rectangle rl_v2_shape_rectangle(v2 v)
+{ return (Rectangle) { 0, 0, v.x, v.y }; }
+
+Rectangle rl_v2_position_rectangle(v2 v)
+{ return (Rectangle) { v.x, v.y, 0, 0 }; }
+
 Rectangle rl_v4_rectangle(v4 v)
 { return (Rectangle) { v.x, v.y, v.z, v.w }; }
 

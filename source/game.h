@@ -20,31 +20,28 @@
 #include "terry.h"             /* https://github.com/BasedProject/terry */
 #include <chad.h>              /* https://github.com/BasedProject/libchad */
 
-enum { TILE_HORIZONTAL, TILE_VERTICAL, TILE_CORNER, TILE_EMPTY, TILE_BLOCK,
-       /* ^-- */                                    /* tile fundamentals */
-       SELECT_CORNER,                               /* select corner */
-       SDM,                                         /* SDM, if the "player" touches this the game is lost. */
-       UP_DOOR, DOWN_DOOR,                          /* doorways */
-       PLAYER,                                      /* the "player" */
-       NEWT, FISH, RAT, LAMBDA, SKEL, POLY,         /* enemies */
-       END_BEING,
-       LANDMINE, SPIKE,                             /* traps */
-       TEXTURE_END };
+enum
+{ TBACKGROUND,
+  TBACK,
+  TFRONT,
+  TTTD,
+  TEND,
+};
 
-typedef struct
-{ int display;                       /* BEGIN_BEING < x < END_BEING */
-  u8 health;
-  u8 damage, resist;            /* health -= MIN(damage - resist, 0); */
-  u8 speed;                     /* number of tiles traversable / attacks doable in a turn */
-  float crit;                   /* 0..1, 2x, ignore resist. */
-  u8 xp;                        /* xp reward to player */
-  u16 cost;                     /* reward / investment cost */
-} being_t;
+enum
+{ TAKA,
+  SNEED,
+  WHISTLE,
+  REWARD,
+  WEIRD,
+  SEND,
+};
 
-#define MAX_BEINGS 64
-#define MAX_BLOCKS 4
-#define MAX_PIPES 8
-#define MAX_LAYERS 3
+enum
+{ OADD,
+  OMULT,
+  OEXP,
+};
 
 struct game
 { bool debug;                   /* DEBUGGING! :( */
@@ -52,11 +49,19 @@ struct game
   v2 virtual_area[1];           /* (Effectively Constant) virtual area : upscaled (stretched) to the physical area */
   v2 physical_area[1];          /* resizable actual window */
   rl_font font;
+  rl_texture texture[TEND];
+  rl_sound sound[SEND];
   /* All Zerod On Restart:       */
-  u64 gold, xp;                 /* gold of the dungeon, xp of "player" */
-  being_t beings[MAX_LAYERS][MAX_BEINGS];
-  v4 blocks[MAX_LAYERS][MAX_BLOCKS];
-  v3 pipes[MAX_LAYERS][MAX_PIPES];
+  i64 score, require, ttl, started, start_flash;
+  i32 deck[52];                 /* sign determines side (positive: show, negative: hide */
+  i32 oper[52];                 /* obviously bit encodable */
+  i32 mark[52];
+  v3 p[52];
+  v2 tp[52];
+  u32 highlight;
+  Rectangle background_shape;
+  size_t background_loop;
+  u32 win, hold_scatter;
 };
 
 void loop(struct game * game);

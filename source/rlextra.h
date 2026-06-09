@@ -13,6 +13,7 @@ typedef Vector4 v4;
 
 typedef RenderTexture2D rl_screen;
 typedef Texture2D rl_texture;
+typedef Sound rl_sound;
 typedef Font rl_font;
 
 /* Consistencies */
@@ -36,6 +37,8 @@ void rl_draw_centered_texture(const Texture * texture, Rectangle source, Rectang
 void rl_draw_scaled_text(Font font, const char * text, v2 position, v2 origin, float degree, int font_size, int spacing, Color color);
 void rl_draw_scaled_centered_text(Font font, const char * text, Rectangle project, float degree, Color color);
 /* type conversions */
+Rectangle rl_v2_shape_rectangle(v2 v);
+Rectangle rl_v2_position_rectangle(v2 v);
 Rectangle rl_v4_rectangle(v4 v);
 v4 rl_rectangle_v4(Rectangle rect);
 
